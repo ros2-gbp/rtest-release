@@ -1,0 +1,12 @@
+Source: ros-rolling-rtest
+Section: misc
+Priority: optional
+Maintainer: Gary Cross <gc19@beam.global>
+Build-Depends: debhelper (>= 9.0.0), libboost-dev, libgmock-dev, ros-rolling-action-msgs, ros-rolling-ament-clang-tidy <!nocheck>, ros-rolling-ament-cmake, ros-rolling-ament-cmake-copyright <!nocheck>, ros-rolling-ament-cmake-ros, ros-rolling-ament-lint-auto <!nocheck>, ros-rolling-ament-lint-common <!nocheck>, ros-rolling-gmock-vendor, ros-rolling-rcl, ros-rolling-rcl-action, ros-rolling-rclcpp, ros-rolling-rclcpp-action, ros-rolling-ros-environment, ros-rolling-ros-workspace
+Homepage: https://index.ros.org/p/rtest/#rolling
+Standards-Version: 3.9.2
+
+Package: ros-rolling-rtest
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, ros-rolling-action-msgs, ros-rolling-gmock-vendor, ros-rolling-rcl, ros-rolling-rcl-action, ros-rolling-rclcpp, ros-rolling-rclcpp-action, ros-rolling-ros-workspace
+Description: This framework enables writing reliable, fully repeatable tests for C++ ROS 2 implementations.
