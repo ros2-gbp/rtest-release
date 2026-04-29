@@ -1,0 +1,12 @@
+Source: ros-lyrical-rtest
+Section: misc
+Priority: optional
+Maintainer: Gary Cross <gc19@beam.global>
+Build-Depends: debhelper (>= 9.0.0), libboost-dev, libgmock-dev, ros-lyrical-action-msgs, ros-lyrical-ament-clang-tidy <!nocheck>, ros-lyrical-ament-cmake, ros-lyrical-ament-cmake-copyright <!nocheck>, ros-lyrical-ament-cmake-ros, ros-lyrical-ament-lint-auto <!nocheck>, ros-lyrical-ament-lint-common <!nocheck>, ros-lyrical-gmock-vendor, ros-lyrical-rcl, ros-lyrical-rcl-action, ros-lyrical-rclcpp, ros-lyrical-rclcpp-action, ros-lyrical-ros-environment, ros-lyrical-ros-workspace
+Homepage: https://index.ros.org/p/rtest/#lyrical
+Standards-Version: 3.9.2
+
+Package: ros-lyrical-rtest
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, ros-lyrical-action-msgs, ros-lyrical-gmock-vendor, ros-lyrical-rcl, ros-lyrical-rcl-action, ros-lyrical-rclcpp, ros-lyrical-rclcpp-action, ros-lyrical-ros-workspace
+Description: This framework enables writing reliable, fully repeatable tests for C++ ROS 2 implementations.
