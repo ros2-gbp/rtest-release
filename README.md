@@ -1,3 +1,30 @@
+## rtest (rolling) - 0.2.3-1
+
+The packages in the `rtest` repository were released into the `rolling` distro by running `/home/sciel/git/personal/rtest/.pixi/envs/release/bin/bloom-release rtest --rosdistro rolling --track rolling --override-release-repository-push-url git@github.com:ros2-gbp/rtest-release.git` on `Fri, 24 Jul 2026 21:52:42 -0000`
+
+The `rtest` package was released.
+
+These packages were explicitly ignored:
+- `rtest_examples`
+- `rtest_examples_interfaces`
+
+Version of package(s) in repository `rtest`:
+
+- upstream repository: https://github.com/Beam-and-Spyrosoft/rtest.git
+- release repository: https://github.com/ros2-gbp/rtest-release.git
+- rosdistro version: `0.2.2-2`
+- old version: `0.2.2-2`
+- new version: `0.2.3-1`
+
+Versions of tools used:
+
+- bloom version: `0.14.3`
+- catkin_pkg version: `1.1.0`
+- rosdep version: `0.26.0`
+- rosdistro version: `1.0.1`
+- vcstools version: `0.1.42`
+
+
 ## rtest (lyrical) - 0.2.3-1
 
 The packages in the `rtest` repository were released into the `lyrical` distro by running `/home/mua/.local/bin/bloom-release rtest --rosdistro lyrical --track lyrical` on `Tue, 26 May 2026 08:32:42 -0000`
