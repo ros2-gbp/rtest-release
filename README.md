@@ -1,3 +1,30 @@
+## rtest (kilted) - 0.2.4-1
+
+The packages in the `rtest` repository were released into the `kilted` distro by running `/home/sciel/git/personal/rtest/.pixi/envs/release/bin/bloom-release rtest --rosdistro kilted --track kilted --override-release-repository-push-url git@github.com:ros2-gbp/rtest-release.git` on `Wed, 26 Aug 2026 16:16:56 -0000`
+
+The `rtest` package was released.
+
+These packages were explicitly ignored:
+- `rtest_examples`
+- `rtest_examples_interfaces`
+
+Version of package(s) in repository `rtest`:
+
+- upstream repository: https://github.com/Beam-and-Spyrosoft/rtest.git
+- release repository: https://github.com/ros2-gbp/rtest-release.git
+- rosdistro version: `0.2.2-1`
+- old version: `0.2.2-1`
+- new version: `0.2.4-1`
+
+Versions of tools used:
+
+- bloom version: `0.14.3`
+- catkin_pkg version: `1.1.0`
+- rosdep version: `0.26.0`
+- rosdistro version: `1.0.1`
+- vcstools version: `0.1.42`
+
+
 ## rtest (jazzy) - 0.2.4-1
 
 The packages in the `rtest` repository were released into the `jazzy` distro by running `/home/sciel/git/personal/rtest/.pixi/envs/release/bin/bloom-release rtest --rosdistro jazzy --track jazzy --override-release-repository-push-url git@github.com:ros2-gbp/rtest-release.git` on `Wed, 26 Aug 2026 16:15:37 -0000`
