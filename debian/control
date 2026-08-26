@@ -1,0 +1,12 @@
+Source: ros-jazzy-rtest
+Section: misc
+Priority: optional
+Maintainer: "Gary Cross" <gc19@beam.global>
+Build-Depends: debhelper (>= 9.0.0), libboost-dev, libgmock-dev, ros-jazzy-action-msgs, ros-jazzy-ament-clang-tidy <!nocheck>, ros-jazzy-ament-cmake, ros-jazzy-ament-cmake-copyright <!nocheck>, ros-jazzy-ament-cmake-ros, ros-jazzy-ament-lint-auto <!nocheck>, ros-jazzy-ament-lint-common <!nocheck>, ros-jazzy-rcl, ros-jazzy-rcl-action, ros-jazzy-rclcpp, ros-jazzy-rclcpp-action, ros-jazzy-ros-environment, ros-jazzy-ros-workspace
+Homepage: https://index.ros.org/p/rtest/#jazzy
+Standards-Version: 3.9.2
+
+Package: ros-jazzy-rtest
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, ros-jazzy-action-msgs, ros-jazzy-rcl, ros-jazzy-rcl-action, ros-jazzy-rclcpp, ros-jazzy-rclcpp-action, ros-jazzy-ros-workspace
+Description: This framework enables writing reliable, fully repeatable tests for C++ ROS 2 implementations.
