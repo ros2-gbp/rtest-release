@@ -9,10 +9,12 @@ channels = [
 platforms = ["linux-64", "linux-aarch64", "osx-arm64", "osx-64"]
 
 [environments]
+default = ["jazzy"]
 jazzy = ["jazzy"]
 kilted = ["kilted"]
-# lyrical = ["lyrical"] # robostack-lyrical channel available, but ros-lyrical-ament-clang-tidy not yet published
+lyrical = ["lyrical"]
 # rolling = ["rolling"] # robostack-rolling channel not ready for production development
+release = { features = ["release"], no-default-feature = true }
 
 [dependencies]
 cmake = ">=3.28,<4"
@@ -25,6 +27,7 @@ clangxx = ">=21.1,<22"
 clang-tools = ">=21.1,<22"
 colcon-common-extensions = ">=0.3.0,<0.4"
 colcon-mixin = ">=0.2.3,<0.3"
+pre-commit = ">=3.7,<4"
 
 [target.linux-64.dependencies]
 lttng-ust = ">=2.13,<2.14"
@@ -37,7 +40,6 @@ lttng-ust = ">=2.13,<2.14"
 LANG = "C.UTF-8"
 LC_ALL = "C.UTF-8"
 COLCON_HOME="${PIXI_PROJECT_ROOT}/.colcon"
-
 
 [feature.jazzy]
 channels = [
@@ -81,13 +83,74 @@ ros-lyrical-rtest-examples-interfaces = { path = "rtest_examples_interfaces" }
 ros-lyrical-rtest-examples = { path = "examples" }
 
 
+# Environment for bloom-releasing rtest to the ROS build farm (rosdistro), without Docker.
+# Deliberately isolated from the jazzy/kilted/lyrical dev environments: bloom-release
+# doesn't need a built ROS workspace, just git, ssh, python, bloom and rosdep.
+[feature.release]
+channels = [
+    "https://prefix.dev/conda-forge"
+]
+
+[feature.release.dependencies]
+python = ">=3.10,<3.13"
+git = ">=2.40"
+openssh = ">=9"
+
+[feature.release.activation.env]
+LANG = "C.UTF-8"
+LC_ALL = "C.UTF-8"
+
+[feature.release.pypi-dependencies]
+bloom = "*"
+rosdep = "*"
+catkin_pkg = "*"
+
+[feature.release.tasks.rosdep-setup]
+cmd = "bash scripts/release/rosdep-setup.sh"
+
+[feature.release.tasks.release-status]
+description = "Show, for every ROS distro, the version released via bloom vs. the local package.xml version"
+cmd = "python3 scripts/release/status.py"
+
+[feature.release.tasks.generate-changelog]
+description = "Prepend a Forthcoming section to each package CHANGELOG.rst from git log since the last tag. Edit those files, then commit, before prepare-release."
+cmd = "catkin_generate_changelog"
+
+[feature.release.tasks.prepare-release]
+description = "Bump every package.xml, retitle Forthcoming in CHANGELOG.rst, commit, and create a local git tag. Does not push. Default bump is patch."
+cmd = "catkin_prepare_release --no-push --bump {{ bump }}"
+args = [
+    { arg = "bump", default = "patch", choices = ["patch", "minor", "major"] }
+]
+
+[feature.release.tasks.bloom-release]
+description = "bloom-release rtest for one ROS distro (interactive; ends by opening a rosdistro PR). Pass extra bloom-release flags after `--`, e.g. `pixi run -e release bloom-release rolling -- --pretend`"
+cmd = "bash scripts/release/bloom-release.sh {{ distro }}"
+args = [
+    { arg = "distro", choices = ["rolling", "jazzy", "kilted", "lyrical"] }
+]
+depends-on = [{ task = "rosdep-setup" }]
+
+[feature.release.tasks.bloom-release-all]
+description = "Run bloom-release sequentially for every ROS distro tracked in rosdistro (rolling, jazzy, kilted, lyrical)"
+cmd = "bash scripts/release/bloom-release-all.sh"
+depends-on = [{ task = "rosdep-setup" }]
+
+
 [tasks.clean]
 cmd = "rm -rf build install log"
 
 [tasks.build]
 inputs = ["rtest", "rtest_examples_interfaces", "examples", "build", "install"]
 cmd = """
-    bash -c 'colcon build $([ "{{compiler}}" = "clang" ] && echo "--mixin clang lld") --cmake-args="-DRTEST_BUILD_EXAMPLES=On"'
+    bash -c '
+        BUILD_DIR="${ROS_DISTRO}-{{compiler}}"
+        colcon --log-base "log/${BUILD_DIR}" build \
+          --build-base "build/${BUILD_DIR}" \
+          --install-base "install/${BUILD_DIR}" \
+          --mixin compile-commands ninja ccache release build-testing-on examples {{compiler}} && \
+          python3 scripts/merge_compile_commands.py "build/${BUILD_DIR}"
+    '
 """
 args = [
     { arg = "compiler", default = "gnu", choices = ["gnu", "clang"] }
@@ -104,7 +167,14 @@ args = [
 
 [tasks.test]
 depends-on = [{ task = "build", args = ["{{compiler}}"] }]
-cmd = "bash -c 'source install/setup.bash && colcon test && colcon test-result'"
+cmd = """
+    bash -c '
+        BUILD_DIR="${ROS_DISTRO}-{{compiler}}"
+        source install/${BUILD_DIR}/setup.bash && \
+          colcon test --build-base "build/${BUILD_DIR}" && \
+          colcon test-result --test-result-base "build/${BUILD_DIR}"
+    '
+"""
 args = [
     { arg = "compiler", default = "gnu", choices = ["gnu", "clang"] }
 ]
@@ -117,3 +187,21 @@ depends-on = [
 args = [
     { arg = "compiler", default = "gnu", choices = ["gnu", "clang"] }
 ]
+
+# Static analysis with clang-tidy. Uses the clang compiler variant for
+# consistent compile_commands.json that clang-tidy can parse reliably.
+# Depends on build, which merges per-package DBs into build/${env}-clang/
+# compile_commands.json and symlinks it at the workspace root for -p=.
+[tasks.clang-tidy]
+description = "Run clang-tidy static analysis across project code"
+depends-on = [{ task = "build", args = ["clang"] }]
+cmd = """
+    bash -c '
+        BUILD_DIR="${ROS_DISTRO}-clang"
+        # Rebuild the merge/symlink in case compile_commands was pointed at
+        # another environment (or removed) after the dependent build task.
+        python3 scripts/merge_compile_commands.py "build/${BUILD_DIR}"
+        test -e compile_commands.json
+        pre-commit run clang-tidy --all-files
+    '
+"""
