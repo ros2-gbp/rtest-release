@@ -6,11 +6,13 @@ on:
       - main
       - jazzy
       - kilted
+      - lyrical
   pull_request:
     branches:
       - main
       - jazzy
       - kilted
+      - lyrical
 
 # Global variables
 env:
@@ -23,7 +25,7 @@ jobs:
     container:
       image: osrf/ros:jazzy-desktop
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Install dependencies
@@ -44,7 +46,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        ros_distro: [jazzy, kilted]
+        ros_distro: [jazzy, kilted, lyrical]
         arch: [amd64, arm64, arm32]
         include:
           - ros_distro: jazzy
@@ -55,13 +57,17 @@ jobs:
             container_image: osrf/ros:kilted-desktop
             ubuntu_version: ubuntu-24.04
             ubuntu_codename: noble
+          - ros_distro: lyrical
+            container_image: osrf/ros:lyrical-desktop
+            ubuntu_version: ubuntu-24.04
+            ubuntu_codename: resolute
     runs-on: ${{ matrix.ubuntu_version }}
     container:
       image: ${{ matrix.container_image }}
     env:
       ROS_DISTRO: ${{ matrix.ros_distro }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Install build tools
@@ -93,7 +99,7 @@ jobs:
 
       - name: Upload test results
         if: ${{ !env.ACT && always() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: test-results-ubuntu-${{ matrix.ros_distro }}-${{ matrix.arch }}
           path: build/rtest_examples/test_results
@@ -119,7 +125,7 @@ jobs:
 
       - name: Upload coverage reports
         if: ${{ !env.ACT && always() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: framework-coverage-report-${{ matrix.ros_distro }}-${{ matrix.arch }}
           path: coverage_artifacts
@@ -127,7 +133,7 @@ jobs:
 
       - name: Upload HTML coverage report
         if: ${{ !env.ACT && always() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coverage-html-report-${{ matrix.ros_distro }}-${{ matrix.arch }}
           path: coverage_report_framework
