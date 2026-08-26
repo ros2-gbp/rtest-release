@@ -1,4 +1,4 @@
-// Copyright 2025 Spyrosoft Limited.
+// Copyright 2026 Spyrosoft Limited.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
 //
 // @file      action_server_base.hpp
 // @author    Mariusz Szczepanik (mua@spyro-soft.com)
-// @date      2025-05-28
+// @date      2026-05-19
 
 #pragma once
 
