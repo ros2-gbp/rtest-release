@@ -22,11 +22,13 @@
 #include <rtest/static_registry.hpp>
 #include <rtest/client_base.hpp>
 
+#include <chrono>
 #include <memory>
 #include <string>
 #include <utility>
 #include <future>
 #include <type_traits>
+#include <vector>
 
 #include "rcl/error_handling.h"
 #include "rcl/client.h"
@@ -66,6 +68,13 @@ public:
     SharedFutureWithRequestAndRequestId,
     async_send_request_with_callback_and_request,
     (typename Types::SharedRequest, typename Types::CallbackWithRequestType),
+    ());
+  MOCK_METHOD(bool, remove_pending_request, (int64_t), ());
+  MOCK_METHOD(size_t, prune_pending_requests, (), ());
+  MOCK_METHOD(
+    size_t,
+    prune_requests_older_than,
+    ((std::chrono::time_point<std::chrono::system_clock>), (std::vector<int64_t> *)),
     ());
   MOCK_METHOD(bool, service_is_ready, (), ());
   MOCK_METHOD(bool, wait_for_service, ((std::chrono::duration<int64_t, std::milli>)), ());
@@ -111,7 +120,7 @@ public:
     rcl_client_options_t &)
   : ClientBase(node_base, node_graph), service_name_(service_name)
   {
-    fully_qualified_name_ = node_base->get_fully_qualified_name();
+    node_id_ = node_base->get_shared_rcl_node_handle();
   }
 
   ~Client() override = default;
@@ -172,6 +181,68 @@ public:
     throw std::runtime_error("No mock attached");
   }
 
+  /// All four overloads forward to ServiceClientMock::remove_pending_request(int64_t).
+  /// Without an expectation or an attached mock they are no-ops returning false.
+  bool remove_pending_request(int64_t request_id)
+  {
+    auto mock = rtest::StaticMocksRegistry::instance().getMock(this).lock();
+    if (mock) {
+      return std::static_pointer_cast<rtest::ServiceClientMock<ServiceT>>(mock)
+        ->remove_pending_request(request_id);
+    }
+    return false;
+  }
+
+  bool remove_pending_request(const FutureAndRequestId & future)
+  {
+    return remove_pending_request(future.request_id);
+  }
+
+  bool remove_pending_request(const SharedFutureAndRequestId & future)
+  {
+    return remove_pending_request(future.request_id);
+  }
+
+  bool remove_pending_request(const SharedFutureWithRequestAndRequestId & future)
+  {
+    return remove_pending_request(future.request_id);
+  }
+
+  size_t prune_pending_requests()
+  {
+    auto mock = rtest::StaticMocksRegistry::instance().getMock(this).lock();
+    if (mock) {
+      return std::static_pointer_cast<rtest::ServiceClientMock<ServiceT>>(mock)
+        ->prune_pending_requests();
+    }
+    return 0;
+  }
+
+  /// Forwards to ServiceClientMock::prune_requests_older_than(). A vector with a custom allocator
+  /// is not passed to the mock directly: the ids the mock reports are appended to it afterwards.
+  template <typename AllocatorT = std::allocator<int64_t>>
+  size_t prune_requests_older_than(
+    std::chrono::time_point<std::chrono::system_clock> time_point,
+    std::vector<int64_t, AllocatorT> * pruned_requests = nullptr)
+  {
+    auto mock = rtest::StaticMocksRegistry::instance().getMock(this).lock();
+    if (!mock) {
+      return 0;
+    }
+    auto client_mock = std::static_pointer_cast<rtest::ServiceClientMock<ServiceT>>(mock);
+    if constexpr (std::is_same_v<AllocatorT, std::allocator<int64_t>>) {
+      return client_mock->prune_requests_older_than(time_point, pruned_requests);
+    } else {
+      if (!pruned_requests) {
+        return client_mock->prune_requests_older_than(time_point, nullptr);
+      }
+      std::vector<int64_t> pruned;
+      auto count = client_mock->prune_requests_older_than(time_point, &pruned);
+      pruned_requests->insert(pruned_requests->end(), pruned.begin(), pruned.end());
+      return count;
+    }
+  }
+
   bool service_is_ready()
   {
     auto mock = rtest::StaticMocksRegistry::instance().getMock(this).lock();
@@ -194,14 +265,13 @@ public:
   void post_init_setup()
   {
     rtest::StaticMocksRegistry::instance().registerServiceClient<ServiceT>(
-      fully_qualified_name_, service_name_, this->weak_from_this());
+      node_id_, service_name_, this->weak_from_this());
   }
 
 private:
   RCLCPP_DISABLE_COPY(Client)
 
-  std::shared_ptr<rcl_node_t> node_handle_;
-  std::string fully_qualified_name_;
+  rtest::StaticMocksRegistry::NodeId node_id_;
   std::string service_name_;
 };
 
@@ -210,14 +280,19 @@ private:
 namespace rtest
 {
 
-template <typename ServiceT>
+template <typename ServiceT, typename NodeT>
 std::shared_ptr<ServiceClientMock<ServiceT>> findServiceClient(
-  const std::string & fullyQualifiedNodeName,
-  const std::string & serviceName)
+  const std::shared_ptr<NodeT> & node,
+  std::string serviceName)
 {
+  if (!serviceName.empty() && serviceName.front() == '/') {
+    serviceName.erase(0, 1);
+  }
   std::shared_ptr<ServiceClientMock<ServiceT>> client_mock{};
   auto client_base =
-    StaticMocksRegistry::instance().getServiceClient(fullyQualifiedNodeName, serviceName).lock();
+    StaticMocksRegistry::instance()
+      .getServiceClient(node->get_node_base_interface()->get_shared_rcl_node_handle(), serviceName)
+      .lock();
 
   if (client_base) {
     if (StaticMocksRegistry::instance().getMock(client_base.get()).lock()) {
@@ -229,18 +304,6 @@ std::shared_ptr<ServiceClientMock<ServiceT>> findServiceClient(
     }
   }
   return client_mock;
-}
-
-template <typename ServiceT, typename NodeT>
-std::shared_ptr<ServiceClientMock<ServiceT>> findServiceClient(
-  const std::shared_ptr<NodeT> nodePtr,
-  const std::string & serviceName)
-{
-  const char * namePtr = serviceName.c_str();
-  if (!serviceName.empty() && serviceName[0] == '/') {
-    namePtr++;
-  }
-  return findServiceClient<ServiceT>(nodePtr->get_fully_qualified_name(), namePtr);
 }
 
 }  // namespace rtest
